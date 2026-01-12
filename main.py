@@ -477,7 +477,6 @@ def update_appoint(
 
     return {"message": f"Appointment status updated to {status_update.status}"}
 
-
 @app.post("/reviews")
 def create_review(
     revieww: schemas.ReviewCreate,
@@ -486,19 +485,27 @@ def create_review(
 
 ):
     if current_user.role != "user" and current_user.role != "patient":
-        raise HTTPException(status_code=403, detail="only patient can review")
-    
+        raise HTTPException(status_code=403, detail="Only patients can review")
 
-
+    # 👇 CHANGE 1: Pehle sirf Doctor aur Patient ID se dhoondo (Status mat dekho abhi)
     appointment = db.query(models.Appointment).filter(
         models.Appointment.doctor_id == revieww.doctor_id,
-        models.Appointment.patient_id == current_user.id,
-        models.Appointment.status == "completed"
-    ).first()
+        models.Appointment.patient_id == current_user.id
+    ).order_by(models.Appointment.id.desc()).first() # Sabse latest appointment uthao
 
+    # 👇 CHANGE 2: Agar appointment hi nahi mili
     if not appointment:
-        raise HTTPException(status_code=400, detail="You can only review doctors after a completed appointment")
+        raise HTTPException(status_code=404, detail="No appointment found with this doctor")
+
+    # 👇 CHANGE 3: Ab Python mein check karo (Ye sabse safe tareeka hai)
+    # Hum lowercase karke check karenge taaki 'Completed' aur 'completed' ka panga na ho
+    current_status = appointment.status.lower().strip() # Space aur case hata do
     
+    if current_status not in ["completed", "complete"]:
+        # Error mein batao ki abhi status kya hai
+        raise HTTPException(status_code=400, detail=f"Cannot review. Current status is: '{appointment.status}'")
+    
+    # Review Save karo
     new_review = models.Review(
         rating=revieww.rating,
         comment=revieww.comment,
@@ -507,12 +514,9 @@ def create_review(
         date=datetime.now().strftime("%Y-%m-%d")
     )
     db.add(new_review)
-
-    # doctor = db.query(models.Doctor).filter(models.Doctor.id == revieww.doctor_id).first()
     db.commit()
     db.refresh(new_review)
     return {"message": "Thank you for your review!"}
-
 
 @app.get("/doctor/stats",response_model=schemas.DoshboardStats)
 def dashboard(
