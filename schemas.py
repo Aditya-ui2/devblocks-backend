@@ -17,125 +17,120 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     role: str      
-    user_id: int    
+    email: str    
     name: str
-    
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
+ 
 class UserCreate(BaseModel):
     full_name: str
-    email: EmailStr
-    phone: str
+    email: str
     password: str
-    role: str = "patient"
-
-    class config:
-        orm_mode = True
+    role: str
 
 class UserResponse(BaseModel):
     id: int
     full_name: str
-    email: EmailStr
+    email: str
     role: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
+# ==---------------------
     
-    class Config:
-        from_attributes = True
 
-
-# -------------------------------------------
-
-
-class DoctorProfileCreate(BaseModel):
-    specialty: str
-    experience: int
-    consultation_fee: int 
-    bio: str
-
-class DoctorResponse(BaseModel):
-    specialty: str
-    experience: int
-    user: UserResponse
-
-    class config:
-        from_attributes = True
-
-
-# ==========-----------------------
-        
-class appointmentCreate(BaseModel):
-    date: str
-    time: str
-    doctor_id: int
-
-class appointmentResponse(BaseModel):
-    id: int
-    doctor_id: int
-    doctor_name: str
-    specialty: str
-    date: str
-    time: str
-    status: str
-
-    class Config:
-        orm_mode = True
-
-
-
-# ----------------------------------
-        
-class PrecriptionCreate(BaseModel):
-    medicines: str
-    notes: str
-    patient_id: int
-    appointment_id: int
-
-
-class PrescriptionResponse(BaseModel):
-    id: int
-    doctor_name: str
-    medicines: str
-    notes: str
-    date: str
-
-    class Config:
-        orm_mode = True
-
-# ===-----------------------------
-
-class ReportResponse(BaseModel):
-    id: int
-    doctor_name: str
+class TaskCreate(BaseModel):
     title: str
-    file_url: str
-    date: str
+    description: str
+    price: int
+    tech_stack: str
+    category: str = "General"
+    client_id: int
+
+
+class ProjectCreate(BaseModel):
+    title: str
+    description: str
+    owner_id: int 
+    tasks: List[TaskCreate] 
+
+class ProjectResponse(BaseModel):
+    id: int
+    title: str
+    status: str
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ProposalCreate(BaseModel):
+    cover_letter: str
+    bid_amount: int
+    freelancer_name: str 
+
+class ProposalResponse(ProposalCreate):
+    id: int
+    status: str
+    task_id: int
 
     class Config:
         from_attributes = True
 
 
-# =------------------------------
 
+class MessageCreate(BaseModel):
+    sender: str
+    content: str
 
-class AppointmentStatusUpdate(BaseModel):
-    status: str
+class MessageResponse(MessageCreate):
+    id: int
+    task_id: int
+    timestamp: datetime
 
-
+    class Config:
+        from_attributes = True
 
 class ReviewCreate(BaseModel):
+    task_id: int
+    freelancer_id: int
     rating: int
     comment: str
-    doctor_id: int
 
-class ReviewResponse(BaseModel):
+
+class UserUpdate(BaseModel):
+    full_name: str
+    title: str = "Freelancer"
+    skills: str = "React, Python" 
+    bio: str = ""
+
+
+class AssetCreate(BaseModel):
+    title: str
+    description: str
+    price: int
+
+
+
+class ProjectIdea(BaseModel):
+    description: str
+
+
+
+class TaskUpdate(BaseModel):
+    title: str
+    price: int
+    description: str
+
+class TaskResponse(BaseModel):
     id: int
-    patient_id: int
-    doctor_id: int
+    title: str
+    description: str
+    price: int
+    tech_stack: Optional[str] = None
+    category: Optional[str] = None
+    freelancer_id: Optional[int] = None
+    status: str
 
-class DoshboardStats(BaseModel):
-    total_patients: int
-    todays_appointments: int
-    total_reports: int
-    rating: float
-
+    class Config:
+        orm_mode = True

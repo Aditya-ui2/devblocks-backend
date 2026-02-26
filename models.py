@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
 from database import Base
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 class User(Base):
     __tablename__ = "users"
@@ -8,85 +9,113 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
-    phone = Column(String(15), nullable=False)
     password = Column(String(255), nullable=False)
     role = Column(String(20), default="patient")
-    is_active = Column(Boolean, default=True)
-    heart_rate = Column(String, default="72")
-    bp = Column(String, default="120/80")
 
-    appointments = relationship("Appointment", back_populates="patient")
-    doctor_profile = relationship("Doctor", back_populates="user", uselist=False)
+    projects = relationship("Project", back_populates="owner")
 
-class Doctor(Base):
-    __tablename__ = "doctors"
+class Project(Base):
+    __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer,ForeignKey('users.id') ,unique=True,nullable=False)
-    specialty = Column(String(100))
-    experience = Column(Integer)
-    consultation_fee = Column(Integer)
-    bio = Column(String(500))
-    is_verified = Column(Boolean, default=False)
+    title = Column(String(255))
+    description = Column(String(1000))
+    status = Column(String(50), default="active") # active, completed
+    owner_id = Column(Integer, ForeignKey("users.id"))
 
-    user = relationship("User", back_populates="doctor_profile")
-    appointments = relationship("Appointment", back_populates="doctor")
+    owner = relationship("User", back_populates="projects")
+    tasks = relationship("Task", back_populates="project")
 
-
-class Appointment(Base):
-
-    __tablename__ = "appointments"
-    id = Column(Integer, primary_key=True, index=True)
-
-    patient_id = Column(Integer, ForeignKey("users.id"))
-    doctor_id = Column(Integer, ForeignKey("doctors.id"))
-
-    date = Column(String(50))
-    time = Column(String(50)) 
-    status = Column(String(50), default="upcoming")
-
-    patient = relationship("User", back_populates="appointments")
-    doctor = relationship("Doctor", back_populates="appointments")
-
-class Precription(Base):
-    __tablename__ = 'prescriptions'
-
-    id = Column(Integer,primary_key=True, index= True)
-    patient_id = Column(Integer, ForeignKey("users.id"))
-    doctor_id = Column(Integer, ForeignKey("doctors.id"))
-    appointment_id = Column(Integer, ForeignKey("appointments.id"))
-
-    medicines = Column(String(500))
-    notes = Column(String(500))
-    date = Column(String(50))
-
-    doctor = relationship("Doctor")
-    patient = relationship("User")
-
-class MedicalReport(Base):
-
-    __tablename__ = "medical_reports"
+class Task(Base):
+    __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255))
+    description = Column(String(1000))
+    price = Column(Integer)
+    status = Column(String(50), default="available")
+    tech_stack = Column(String(255))
+    client_id = Column(Integer)
+    freelancer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    submission_url = Column(String(500), nullable=True)
+
+    category = Column(String(100), default="General")
     
-    patient_id = Column(Integer, ForeignKey("users.id"))
-    doctor_id = Column(Integer, ForeignKey("doctors.id"))
-    
-    title = Column(String(100))      
-    file_url = Column(String(500))   
-    date = Column(String(50))
+    project_id = Column(Integer, ForeignKey("projects.id"))
+    messages = relationship("Message", back_populates="task")
+    project = relationship("Project", back_populates="tasks")
+    proposals = relationship("Proposal", back_populates="task")
 
-    patient = relationship("User")
-    doctor = relationship("Doctor")
+class Proposal(Base):
+    __tablename__ = "proposals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cover_letter = Column(String(500)) 
+    bid_amount = Column(Integer)       
+    status = Column(String(50), default="pending") 
+    freelancer_name = Column(String(100))
+    image_url = Column(String(500), nullable=True)
+    
+    
+    task_id = Column(Integer, ForeignKey("tasks.id"))
+    freelancer_id = Column(Integer, ForeignKey("users.id"))
+
+    task = relationship("Task", back_populates="proposals")
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(Integer, ForeignKey("tasks.id")) 
+    sender = Column(String(50)) # 'client' ya 'freelancer'
+    content = Column(String(1000))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    
+    task = relationship("Task", back_populates="messages")
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer)
+    amount = Column(Integer) 
+    description = Column(String(255))
+    type = Column(String(50))
+    timestamp = Column(DateTime, default=datetime.utcnow)
 
 
 class Review(Base):
-
     __tablename__ = "reviews"
 
     id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(Integer, ForeignKey("users.id"))
-    doctor_id = Column(Integer, ForeignKey("doctors.id"))
-    rating = Column(Integer) 
-    comment = Column(String(255))
-    date = Column(String(50))
+    task_id = Column(Integer, ForeignKey("tasks.id"))
+    reviewer_id = Column(Integer) 
+    freelancer_id = Column(Integer) 
+    rating = Column(Integer)      
+    comment = Column(String(500))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer)
+    message = Column(String(255))
+    is_read = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    task_id = Column(Integer, nullable=True)
+    sender_name = Column(String, nullable=True)   
+
+class Asset(Base):
+    __tablename__ = "assets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100))
+    description = Column(String(500))
+    price = Column(Integer)
+    sales = Column(Integer, default=0)
+    creator_id = Column(Integer)
+    download_link = Column(String(255))
